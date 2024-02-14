@@ -844,3 +844,97 @@ uint8_t* decrypt_raw(const uint8_t* cipher, const size_t cipher_size, const char
     free(xyv); free(x); free(y); free(x_pad); free(y_pad); free(c1); free(c2); free(c1_hex);
     return result;
 }
+
+const asn1_static_node sequence_asn1_tab_encrypt[] = {
+  { "SEQUENCEXYSS", 536875024, NULL },
+  { NULL, 1073741836, NULL },
+  { "SequenceOfXYSS", 536870917, NULL },
+  { "x", 1073741827, NULL },
+  { "y", 1073741827, NULL },
+  { "sm3", 1073741831, NULL },
+  { "secret", 7, NULL },
+  { NULL, 0, NULL }
+};
+
+uint8_t* encrypt_byte(const uint8_t* data, const size_t data_size, const char* public_key, size_t* size) {
+    size_t cipher_size = 0;
+    uint8_t* cipher = encrypt_raw(data, data_size, public_key, &cipher_size);
+    uint8_t* x = (uint8_t*)malloc(sizeof(uint8_t) * 32);
+    uint8_t* y = (uint8_t*)malloc(sizeof(uint8_t) * 32);
+    uint8_t* sm3 = (uint8_t*)malloc(sizeof(uint8_t) * 32);
+    uint8_t* secret = (uint8_t*)malloc(sizeof(uint8_t) * (cipher_size - 96));
+    memcpy(x, cipher, sizeof(uint8_t) * 32);
+    memcpy(y, cipher + 32, sizeof(uint8_t) * 32);
+    memcpy(sm3, cipher + 64, sizeof(uint8_t) * 32);
+    memcpy(secret, cipher + 96, sizeof(uint8_t) * (cipher_size - 96));
+    asn1_node definations = NULL, node = NULL;
+    asn1_array2tree(sequence_asn1_tab_encrypt, &definations, NULL);
+    asn1_create_element(definations, "SEQUENCEXYSS.SequenceOfXYSS", &node);
+    int x_ispad, y_ispad;
+    uint8_t* x_pad = pad_zero_positive(x, 32, &x_ispad);
+    uint8_t* y_pad = pad_zero_positive(y, 32, &y_ispad);
+    size_t x_pad_size = x_ispad ? 33 : 32;
+    size_t y_pad_size = y_ispad ? 33 : 32;
+    asn1_write_value(node, "x", x_pad, x_pad_size);
+    asn1_write_value(node, "y", y_pad, y_pad_size);
+    asn1_write_value(node, "sm3", sm3, 32);
+    asn1_write_value(node, "secret", secret, cipher_size - 96);
+    char buffer[1024];
+    int buffer_size = sizeof(buffer);
+    asn1_der_coding(node, "", buffer, &buffer_size, NULL);
+    asn1_delete_structure(&node);
+    asn1_delete_structure(&definations);
+    uint8_t* result = (uint8_t*)malloc(sizeof(uint8_t) * buffer_size);
+    memcpy(result, buffer, sizeof(char) * buffer_size);
+    *size = buffer_size;
+    free(cipher);
+    free(x);
+    free(y);
+    free(sm3);
+    free(secret);
+    free(x_pad);
+    free(y_pad);
+    return result;
+}
+
+uint8_t* decrypt_byte(const uint8_t* asn1_encrypt_data, const size_t enc_size, const char* private_key, size_t* size) {
+    asn1_node definations = NULL, node = NULL;
+    asn1_array2tree(sequence_asn1_tab_encrypt, &definations, NULL);
+    asn1_create_element(definations, "SEQUENCEXYSS.SequenceOfXYSS", &node);
+    asn1_der_decoding(&node, asn1_encrypt_data, enc_size * sizeof(char), NULL);
+    char x_value[1024], y_value[1024], sm3_value[1024], secret_value[1024];
+    int x_len = sizeof(x_value);
+    int y_len = sizeof(y_value);
+    int sm3_len = sizeof(sm3_value);
+    int secret_len = sizeof(secret_value);
+    asn1_read_value(node, "x", x_value, &x_len);
+    asn1_read_value(node, "y", y_value, &y_len);
+    asn1_read_value(node, "sm3", sm3_value, &sm3_len);
+    asn1_read_value(node, "secret", secret_value, &secret_len);
+    asn1_delete_structure(&node);
+    asn1_delete_structure(&definations);
+    uint8_t* x_vec = (uint8_t*)malloc(sizeof(uint8_t) * x_len);
+    uint8_t* y_vec = (uint8_t*)malloc(sizeof(uint8_t) * y_len);
+    uint8_t* sm3_vec = (uint8_t*)malloc(sizeof(uint8_t) * sm3_len);
+    uint8_t* secret_vec = (uint8_t*)malloc(sizeof(uint8_t) * secret_len);
+    memcpy(x_vec, x_value, sizeof(uint8_t) * x_len);
+    memcpy(y_vec, y_value, sizeof(uint8_t) * y_len);
+    memcpy(sm3_vec, sm3_value, sizeof(uint8_t) * sm3_len);
+    memcpy(secret_vec, secret_value, sizeof(uint8_t) * secret_len);
+    uint8_t* x_vec_a = append_remove_zero(x_vec, x_len, 32);
+    uint8_t* y_vec_a = append_remove_zero(y_vec, y_len, 32);
+    uint8_t* v1 = concvec(x_vec_a, 32, y_vec_a, 32);
+    uint8_t* v2 = concvec(v1, 64, sm3_vec, 32);
+    uint8_t* v3 = concvec(v2, 96, secret_vec, secret_len);
+    uint8_t* result = decrypt_raw(v3, 96 + secret_len, private_key, size);
+    free(x_vec);
+    free(y_vec);
+    free(sm3_vec);
+    free(secret_vec);
+    free(x_vec_a);
+    free(y_vec_a);
+    free(v1);
+    free(v2);
+    free(v3);
+    return result;
+}

@@ -8,6 +8,7 @@
 #include <time.h>
 #include <math.h>
 #include "gmp.h"
+#include "libtasn1.h"
 
 typedef struct VecU8 {
     uint8_t* data;
@@ -30,6 +31,7 @@ char* format_hex(const char* hex_1, const char* hex_2);
 uint8_t* concvec(const uint8_t* vec_1, const size_t vec_1_size, const uint8_t* vec_2, const size_t vec_2_size);
 uint8_t* appendzero(const uint8_t* data, const size_t data_size, const size_t size);
 uint8_t* removezero(const uint8_t* data, const size_t data_size, const size_t size);
+uint8_t* append_remove_zero(const uint8_t* data, const size_t data_size, const size_t size);
 void u32_to_byte_array(const uint32_t value, uint8_t byte_array[4]);
 void byte_array_to_u32(const uint8_t byte_array[4], uint32_t* value);
 void mpz_to_hex(const mpz_t mpz, char* hex);

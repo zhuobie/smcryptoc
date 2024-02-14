@@ -180,6 +180,20 @@ uint8_t* removezero(const uint8_t* data, const size_t data_size, const size_t si
     return new;
 }
 
+uint8_t* append_remove_zero(const uint8_t* data, const size_t data_size, const size_t size) {
+    if (data_size > size) {
+        return removezero(data, data_size, size);
+    }
+    if (data_size < size) {
+        return appendzero(data, data_size, size);
+    }
+    if (data_size == size) {
+        uint8_t* new = (uint8_t*)malloc(sizeof(uint8_t) * data_size);
+        memcpy(new, data, sizeof(uint8_t) * data_size);
+        return new;
+    }
+}
+
 void u32_to_byte_array(const uint32_t value, uint8_t byte_array[4]) {
     byte_array[0] = (value >> 24) & 0xFF;
     byte_array[1] = (value >> 16) & 0xFF;

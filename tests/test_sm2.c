@@ -17,6 +17,14 @@ int main() {
     uint8_t* enc = encrypt_raw(data, sizeof(data), pk, &enc_size);
     uint8_t* dec = decrypt_raw(enc, enc_size, sk, &dec_size);
 
+    // encrypt_byte and decrypt_byte
+    uint8_t* enc_byte = encrypt_byte(data, sizeof(data), pk, &enc_size);
+    uint8_t* dec_byte = decrypt_byte(enc_byte, enc_size, sk, &dec_size);
+    printf("%s\n", "dec_bytes");
+    for (int i = 0; i < dec_size; i++) {
+        printf("%d\n", dec_byte[i]);
+    }
+
     // assert
     printf("%d\n", verify);
     for (int i = 0; i < dec_size; i++) {

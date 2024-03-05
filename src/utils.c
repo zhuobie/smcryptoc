@@ -41,18 +41,21 @@ void unshift_vecu8(VecU8* vecu8, const uint8_t e) {
     destroy_vecu8(vecu8_copy);
 }
 
-// void unshift_vec_vecu8(VecU8* vecu8, uint8_t* vec, const size_t vec_size) {
-//     VecU8* vecu8_copy = init_vecu8();
-//     memcpy(vecu8_copy->data, vecu8->data, sizeof(uint8_t) * vecu8->len);
-//     vecu8_copy->len = vecu8->len;
-//     vecu8->data = (uint8_t*)realloc(vecu8->data, sizeof(uint8_t) * (vecu8->len + vec_size));
-
-//     memcpy(vecu8->data, vec, sizeof(uint8_t) * vec_size);
-//     memcpy(vecu8->data + vec_size, vecu8_copy->data, sizeof(uint8_t) * vecu8_copy->len);
-    
-//     vecu8->len += vec_size;
-//     destroy_vecu8(vecu8_copy);
-// }
+void insert_vec_vecu8(VecU8* vecu8, const size_t position, uint8_t* vec, size_t vec_size) {
+    uint8_t* vecu8_l = (uint8_t*)malloc(sizeof(uint8_t) * position);
+    uint8_t* vecu8_r = (uint8_t*)malloc(sizeof(uint8_t) * (vecu8->len - position));
+    size_t vecu8_l_size = position;
+    size_t vecu8_r_size = (vecu8->len - position);
+    memcpy(vecu8_l, vecu8->data, vecu8_l_size);
+    memcpy(vecu8_r, vecu8->data + position, vecu8_r_size);
+    vecu8->data = (uint8_t*)realloc(vecu8->data, sizeof(uint8_t) * (vecu8->len + vec_size));
+    vecu8->len += vec_size;
+    memcpy(vecu8->data, vecu8_l, sizeof(uint8_t) * vecu8_l_size);
+    memcpy(vecu8->data + vecu8_l_size, vec, sizeof(uint8_t) * vec_size);
+    memcpy(vecu8->data + vecu8_l_size + vec_size, vecu8_r, sizeof(uint8_t) * vecu8_r_size);
+    free(vecu8_l);
+    free(vecu8_r);
+}
 
 void unshift_vec_vecu8(VecU8* vecu8, uint8_t* vec, size_t vec_size) {
     uint8_t* new_data = (uint8_t*)malloc(sizeof(uint8_t) * (vecu8->len + vec_size));

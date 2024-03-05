@@ -155,11 +155,52 @@ uint8_t* encrypt_ecb(const uint8_t* p_input_data, const size_t p_input_data_size
     uint8_t input_data_16[16];
     while (length > 0) {
         memcpy(input_data_16, input_data_new->data + i, sizeof(uint8_t) * 16);
-
         uint8_t one_round_output[16];
         one_round(sk, input_data_16, one_round_output);
-
         push_vec_vecu8(output_data, one_round_output, 16);
+        i += 16;
+        length -= 16;
+    }
+    *output_data_size = output_data->len;
+    uint8_t* result = (uint8_t*)malloc(sizeof(uint8_t) * output_data->len);
+    memcpy(result, output_data->data, sizeof(uint8_t) * output_data->len);
+    destroy_vecu8(output_data);
+    destroy_vecu8(input_data_new);
+    destroy_vecu8(input_data);
+    return result;
+}
+
+uint8_t* encrypt_cbc(const uint8_t* p_input_data, const size_t p_input_data_size,
+                     const uint8_t key[16], const uint8_t p_iv[16], size_t* output_data_size) {
+    VecU8* input_data = init_vecu8();
+    push_vec_vecu8(input_data, p_input_data, p_input_data_size);
+    uint8_t iv[16];
+    memcpy(iv, p_iv, sizeof(uint8_t) * 16);
+    uint32_t sk[32];
+    set_key(key, "SM4_ENCRYPT", sk);
+    size_t i = 0;
+    VecU8* output_data = init_vecu8();
+    uint8_t tmp_input[16];
+    VecU8* input_data_new = padding(input_data);
+    size_t length = input_data_new->len;
+    uint8_t input_data_16[16];
+    uint8_t iv_16[16];
+    uint8_t tmp_input_16[16];
+    uint8_t one_round_[16];
+    uint8_t iv_tmp[16];
+    while (length > 0) {
+        memcpy(input_data_16, input_data_new->data + i, sizeof(uint8_t) * 16);
+        memcpy(iv_16, iv, sizeof(uint8_t) * 16);
+        for (int i = 0; i < 16; i++) {
+            tmp_input[i] = input_data_16[i] ^ iv_16[i];
+        }
+        memcpy(tmp_input_16, tmp_input, sizeof(uint8_t) * 16);
+        one_round(sk, tmp_input_16, one_round_);
+        for (int i = 0; i < 16; i++) {
+            push_vecu8(output_data, one_round_[i]);
+        }
+        memcpy(iv_tmp, output_data->data + i, sizeof(uint8_t) * 16);
+        memcpy(iv, iv_tmp, sizeof(uint8_t) * 16);
         i += 16;
         length -= 16;
     }
@@ -197,5 +238,44 @@ uint8_t* decrypt_ecb(const uint8_t* p_input_data, const size_t p_input_data_size
     destroy_vecu8(result_vecu8);
     destroy_vecu8(output_data);
     destroy_vecu8(input_data);
+    return result;
+}
+
+uint8_t* decrypt_cbc(const uint8_t* p_input_data, const size_t p_input_data_size,
+                     const uint8_t key[16], const uint8_t p_iv[16], size_t* output_data_size) {
+    uint8_t iv[16];
+    memcpy(iv, p_iv, sizeof(uint8_t) * 16);
+    uint32_t sk[32];
+    set_key(key, "SM4_DECRYPT", sk);
+    size_t i = 0;
+    VecU8* output_data = init_vecu8();
+    size_t length = p_input_data_size;
+    uint8_t input_data_16[16];
+    uint8_t output_data_16[16];
+    uint8_t iv_16[16];
+    uint8_t tmp_copy[16];
+    uint8_t iv_tmp[16];
+    while (length > 0) {
+        memcpy(input_data_16, p_input_data + i, sizeof(uint8_t) * 16);
+        uint8_t one_round_output[16];
+        one_round(sk, input_data_16, one_round_output);
+        push_vec_vecu8(output_data, one_round_output, 16);
+        memcpy(output_data_16, output_data->data + i, sizeof(uint8_t) * 16);
+        memcpy(iv_16, iv, sizeof(uint8_t) * 16);
+        for (int i = 0; i < 16; i++) {
+            tmp_copy[i] = output_data_16[i] ^ iv_16[i];
+        }
+        memcpy(output_data->data + i, tmp_copy, 16);
+        memcpy(iv_tmp, p_input_data + i, sizeof(uint8_t) * 16);
+        memcpy(iv, iv_tmp, sizeof(uint8_t) * 16);
+        i += 16;
+        length -= 16;
+    }
+    VecU8* result_vecu8 = unpadding(output_data);
+    *output_data_size = result_vecu8->len;
+    uint8_t* result = (uint8_t*)malloc(sizeof(uint8_t) * result_vecu8->len);
+    memcpy(result, result_vecu8->data, sizeof(uint8_t) * result_vecu8->len);
+    destroy_vecu8(result_vecu8);
+    destroy_vecu8(output_data);
     return result;
 }

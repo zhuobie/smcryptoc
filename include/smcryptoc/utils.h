@@ -23,6 +23,7 @@ void push_vecu8_vecu8(VecU8* vecu8, const VecU8* vecu8_push);
 void unshift_vecu8(VecU8* vecu8, const uint8_t e);
 void unshift_vec_vecu8(VecU8* vecu8, uint8_t* vec, const size_t vec_size);
 void unshift_vecu8_vecu8(VecU8* vecu8, const VecU8* vecu8_unshift);
+void insert_vec_vecu8(VecU8* vecu8, const size_t position, uint8_t* vec, size_t vec_size);
 
 void bytes_to_file(const uint8_t* file_bytes, const size_t file_size, const char* file_path);
 uint8_t* bytes_from_file(const char* file_path);
